@@ -1,10 +1,10 @@
 from typing import Any
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, select
-from sqlalchemy.orm import declarative_base, Session
+from sqlalchemy import Column, Integer, String, Boolean, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import relationship
 from hashlib import sha256
+from app.database import Base
 
-Base = declarative_base()
 
 class User(Base):
     __tablename__ = "user"
@@ -12,6 +12,7 @@ class User(Base):
     username = Column("username", String(length=50), unique=True)
     _password_hash = Column("password_hash", String(length=500))
     is_admin = Column("is_admin", Boolean(), default=False)
+    accounts = relationship("Account", back_populates="user")
     
     def __init__(self, username: str, password: str, is_admin: bool=False, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -46,7 +47,7 @@ class User(Base):
         return users
     
     @classmethod
-    async def get_user_by_id(cls, session, id) -> 'User':
+    async def get_by_id(cls, session, id) -> 'User':
         async with session.begin():
             return await session.get(cls, id)
         
