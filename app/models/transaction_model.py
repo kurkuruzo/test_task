@@ -1,5 +1,6 @@
 from typing import Any, Union
 from sqlalchemy import Column, Integer, Float, ForeignKey, select
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import Base
 from app.models.account_model import Account
@@ -7,8 +8,9 @@ from app.models.account_model import Account
 class Transaction(Base):
     __tablename__ = "transaction"
     id = Column("id", Integer(), primary_key=True)
-    amount = Column("amount", Float(), unique=True)
+    amount = Column("amount", Float())
     account_id = Column(Integer(), ForeignKey("account.id", ondelete='CASCADE'))
+    account = relationship("Account", back_populates="transactions")
 
     def to_dict(self):
         return {
@@ -39,5 +41,6 @@ class Transaction(Base):
         
     async def save(self, session) -> 'Transaction':
         async with session.begin():
-            await session.flush()
+            await session.add_all([self])
+            await session.commit()
             return self

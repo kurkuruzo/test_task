@@ -25,6 +25,8 @@ async def get_users(request: Request) -> HTTPResponse:
 async def get_user(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
     user = await User.get_by_id(session, pk)
+    if not user:
+        return HTTPResponse(status=404)
     return json_response(user.to_dict())
 
 @user_bp.put('/users/<pk:int>')
@@ -33,6 +35,8 @@ async def update_user(request: Request, pk: int) -> HTTPResponse:
     new_password = request.json.get('password')
     new_is_admin = request.json.get('is_admin')
     user = await User.get_by_id(session, pk)
+    if not user:
+        return HTTPResponse(status=404)
     if new_password:
         user.password = new_password
     elif new_is_admin is not None:
@@ -44,6 +48,8 @@ async def update_user(request: Request, pk: int) -> HTTPResponse:
 async def delete_user(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
     user = await User.get_by_id(session, pk)
+    if not user:
+        return HTTPResponse(status=404)
     user_id = user.id
     await session.delete(user)
     await session.commit()

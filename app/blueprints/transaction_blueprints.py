@@ -25,12 +25,16 @@ async def get_transactions(request: Request) -> HTTPResponse:
 async def get_transaction(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
     transaction = await Transaction.get_by_id(session, pk)
+    if not transaction:
+        return HTTPResponse(status=404)
     return json_response(transaction.to_dict())
 
 @transaction_bp.delete('/transactions/<pk:int>')
 async def delete_transaction(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
     transaction = await Transaction.get_by_id(session, pk)
+    if not transaction:
+        return HTTPResponse(status=404)
     transaction_id = transaction.id
     await session.delete(transaction)
     await session.commit()

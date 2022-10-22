@@ -3,7 +3,7 @@ from sanic.request import Request
 from sanic.response import HTTPResponse
 from sanic.response import json as json_response
 from app.models.product_model import Product
-import app.services
+import app.services as services
 
 product_bp = Blueprint("product_blueprint")
 
@@ -26,6 +26,8 @@ async def get_products(request: Request) -> HTTPResponse:
 async def get_product(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
     product = await Product.get_by_id(session, pk)
+    if not product:
+        return HTTPResponse(status=404)
     return json_response(product.to_dict())
 
 @product_bp.put('/products/<pk:int>')
@@ -35,6 +37,8 @@ async def update_product(request: Request, pk: int) -> HTTPResponse:
     new_description = request.json.get('description')
     new_price = request.json.get('price')
     product = await Product.get_by_id(session, pk)
+    if not product:
+        return HTTPResponse(status=404)
     if new_title:
         product.title = new_title
     elif new_description:
@@ -48,14 +52,21 @@ async def update_product(request: Request, pk: int) -> HTTPResponse:
 async def delete_product(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
     product = await Product.get_by_id(session, pk)
+    if not product:
+        return HTTPResponse(status=404)
     product_id = product.id
     await session.delete(product)
     await session.commit()
     return json_response({"product_id": product_id})
 
 @product_bp.post('/products/<pk:int>/order')
-async def delete_product(request: Request, pk: int) -> HTTPResponse:
+async def order_product(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
-    product = await Product.get_by_id(session, pk)
-    services.buy_product(pk)
-    return json_response({"product_id": product_id})
+    account_id = request.json["account_id"]
+    if not await Product.get_by_id(session, pk):
+        return HTTPResponse(status=404)
+    try:
+        transaction = await services.buy_product(session=session, product_id=pk, account_id=account_id)
+    except services.InsuficientBalance as e:
+        return json_response({"result": "failed", "message": e.args}, status=409)
+    return json_response(transaction.to_dict())

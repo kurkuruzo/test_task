@@ -1,7 +1,7 @@
 from typing import Any
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, selectinload
 from app.database import Base
 
 class Account(Base):
@@ -10,11 +10,14 @@ class Account(Base):
     balance = Column("balance", Float(), default=0.0)
     user_id = Column(Integer(), ForeignKey("user.id", ondelete='CASCADE'))
     user = relationship("User", back_populates="accounts")
+    transactions = relationship("Transaction", back_populates="account")
 
-    def to_dict(self):
+    async def to_dict(self, session):
+        res = await session.execute(select(Account).options(selectinload(Account.transactions)))
         return {
             "id": self.id,
             "balance": self.balance,
+            "transactions": [transaction.to_dict() for transaction in self.transactions],
             "user_id": self.user_id
         }
     
