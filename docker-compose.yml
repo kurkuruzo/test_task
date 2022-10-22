@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: pgsqlpass
+    volumes:
+      - ./.dbdata:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
