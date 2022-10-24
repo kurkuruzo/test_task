@@ -4,6 +4,7 @@ from sanic.response import HTTPResponse
 from sanic.response import json as json_response, HTTPResponse
 from app.models.account_model import Account
 from app.models.transaction_model import Transaction
+from app.services.user_services import protected
 
 account_bp = Blueprint("account_blueprint")
 
@@ -17,12 +18,14 @@ async def create_account(request: Request) -> HTTPResponse:
     return json_response(account.to_dict(session))
 
 @account_bp.get('/accounts')
+@protected
 async def get_accounts(request: Request) -> HTTPResponse:
     session = request.ctx.session
     accounts = await Account.get_all(session)
     return json_response([await account.to_dict(session) for account in accounts])
     
 @account_bp.get('/accounts/<pk:int>')
+@protected
 async def get_account(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
     account = await Account.get_by_id(session, pk)
@@ -31,6 +34,7 @@ async def get_account(request: Request, pk: int) -> HTTPResponse:
     return json_response(await account.to_dict(session))
 
 @account_bp.delete('/accounts/<pk:int>')
+@protected
 async def delete_account(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
     account = await Account.get_by_id(session, pk)
@@ -42,6 +46,7 @@ async def delete_account(request: Request, pk: int) -> HTTPResponse:
     return json_response({"account_id": account_id})
 
 @account_bp.get('/accounts/<pk:int>/transactions')
+@protected
 async def get_account_transactions(request: Request, pk: int):
     session = request.ctx.session
     if not await Account.get_by_id(session, pk):

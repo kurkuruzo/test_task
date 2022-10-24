@@ -3,10 +3,12 @@ from sanic.request import Request
 from sanic.response import HTTPResponse
 from sanic.response import json as json_response
 from app.models.transaction_model import Transaction
+from app.services.user_services import protected
 
 transaction_bp = Blueprint("transaction_blueprint")
 
 @transaction_bp.post('/transactions')
+@protected
 async def create_transaction(request: Request) -> HTTPResponse:
     session = request.ctx.session
     body = request.json
@@ -16,12 +18,14 @@ async def create_transaction(request: Request) -> HTTPResponse:
     return json_response(transaction.to_dict())
 
 @transaction_bp.get('/transactions')
+@protected
 async def get_transactions(request: Request) -> HTTPResponse:
     session = request.ctx.session
     transactions = await Transaction.get_all(session)
     return json_response([transaction.to_dict() for transaction in transactions])
     
 @transaction_bp.get('/transactions/<pk:int>')
+@protected
 async def get_transaction(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
     transaction = await Transaction.get_by_id(session, pk)
@@ -30,6 +34,7 @@ async def get_transaction(request: Request, pk: int) -> HTTPResponse:
     return json_response(transaction.to_dict())
 
 @transaction_bp.delete('/transactions/<pk:int>')
+@protected
 async def delete_transaction(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
     transaction = await Transaction.get_by_id(session, pk)

@@ -3,11 +3,13 @@ from sanic.request import Request
 from sanic.response import HTTPResponse
 from sanic.response import json as json_response
 from app.models.product_model import Product
-import app.services as services
+import app.services.product_services as pr_services
+from app.services.user_services import protected
 
 product_bp = Blueprint("product_blueprint")
 
 @product_bp.post('/products')
+@protected
 async def create_product(request: Request) -> HTTPResponse:
     session = request.ctx.session
     body = request.json
@@ -17,12 +19,14 @@ async def create_product(request: Request) -> HTTPResponse:
     return json_response(product.to_dict())
 
 @product_bp.get('/products')
+@protected
 async def get_products(request: Request) -> HTTPResponse:
     session = request.ctx.session
     products = await Product.get_all(session)
     return json_response([product.to_dict() for product in products])
     
 @product_bp.get('/products/<pk:int>')
+@protected
 async def get_product(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
     product = await Product.get_by_id(session, pk)
@@ -31,6 +35,7 @@ async def get_product(request: Request, pk: int) -> HTTPResponse:
     return json_response(product.to_dict())
 
 @product_bp.put('/products/<pk:int>')
+@protected
 async def update_product(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
     new_title = request.json.get('title')
@@ -48,6 +53,7 @@ async def update_product(request: Request, pk: int) -> HTTPResponse:
     await session.commit()
     return json_response(product.to_dict())
 
+@protected
 @product_bp.delete('/products/<pk:int>')
 async def delete_product(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
@@ -59,6 +65,7 @@ async def delete_product(request: Request, pk: int) -> HTTPResponse:
     await session.commit()
     return json_response({"product_id": product_id})
 
+@protected
 @product_bp.post('/products/<pk:int>/order')
 async def order_product(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
@@ -66,7 +73,7 @@ async def order_product(request: Request, pk: int) -> HTTPResponse:
     if not await Product.get_by_id(session, pk):
         return HTTPResponse(status=404)
     try:
-        transaction = await services.buy_product(session=session, product_id=pk, account_id=account_id)
-    except services.InsuficientBalance as e:
+        transaction = await pr_services.buy_product(session=session, product_id=pk, account_id=account_id)
+    except pr_services.InsuficientBalance as e:
         return json_response({"result": "failed", "message": e.args}, status=409)
     return json_response(transaction.to_dict())

@@ -8,10 +8,11 @@ from app.database import Base
 
 class User(Base):
     __tablename__ = "user"
-    id = Column("id", Integer(), primary_key=True)
+    id = Column("id", Integer(), primary_key=True, autoincrement=True)
     username = Column("username", String(length=50), unique=True)
-    _password_hash = Column("password_hash", String(length=500))
+    password_hash = Column("password_hash", String(length=500))
     is_admin = Column("is_admin", Boolean(), default=False)
+    is_active = Column("is_active", Boolean(), default=False)
     accounts = relationship("Account", back_populates="user")
     
     def __init__(self, username: str, password: str, is_admin: bool=False, *args: Any, **kwargs: Any) -> None:
@@ -26,10 +27,7 @@ class User(Base):
     
     @password.setter
     def password(self, value):
-        self._password_hash = sha256(value.encode()).hexdigest()
-        
-    def password_matches(self, password: str) -> bool:
-        return self._password_hash == sha256(password.encode()).hexdigest()
+        self.password_hash = sha256(str(value).encode()).hexdigest()
     
     def to_dict(self):
         return {
@@ -50,6 +48,14 @@ class User(Base):
     async def get_by_id(cls, session, id) -> 'User':
         async with session.begin():
             return await session.get(cls, id)
+        
+    @classmethod
+    async def get_by_username(cls, session: AsyncSession, username: str) -> 'User':
+        async with session.begin():
+            stmt = select(cls).where(cls.username == username)
+            result = await session.execute(stmt)
+            user = result.scalar()
+            return user
         
     async def save(self, session) -> 'User':
         async with session.begin():

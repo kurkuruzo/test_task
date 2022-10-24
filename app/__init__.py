@@ -1,5 +1,6 @@
 import logging
 from sanic import Sanic
+from app import config
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG
@@ -7,6 +8,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Sanic('app')
+app.config.SECRET = config.SECRET
 
 from app.blueprints.user_blueprints import user_bp
 from app.blueprints.product_blueprints import product_bp
