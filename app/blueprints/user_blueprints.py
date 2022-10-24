@@ -1,4 +1,4 @@
-from urllib import request
+from urllib import request, response
 from venv import create
 import jwt
 import logging
@@ -10,7 +10,7 @@ from sanic.exceptions import Forbidden, BadRequest, NotFound
 
 from app.services.user_services import protected
 from app.models.user_model import User
-from app.services.user_services import check_password, create_user
+import app.services.user_services as us
 
 logger = logging.getLogger(__name__)
 
@@ -18,29 +18,17 @@ user_bp = Blueprint("user_blueprint")
 
 @user_bp.post("/users/login")
 async def do_login(request) -> HTTPResponse:
-    session = request.ctx.session
-    if not request.json.get('username') or not request.json.get("password"):
-        raise BadRequest("Please provide username and password")
-    user_to_authenticate = await User.get_by_username(session, request.json['username'])
-    is_password_match = check_password(user_to_authenticate, request.json["password"])
-    if is_password_match:
-        token = jwt.encode({}, request.app.config.SECRET)
-        return text(token)
-    raise Forbidden("Username or password is not correct")
+    response = await us.login_user(request)
+    return response
 
 @user_bp.get('/users/activate')
 async def activate_user(request: Request) -> HTTPResponse:
-    user_id = request.query_args["user_id"]
-    user = await User.get_by_id(request.ctx.session, user_id)
-    if user:
-        user.is_active = True
-        return json_response({"user_id": user.id, "user_is_active": user.is_active})
-    return NotFound("User not found")
+    return await us.activate_user(request)
         
 
 @user_bp.post('/users')
 async def register_user(request: Request) -> HTTPResponse:
-    user_id = await create_user(request.ctx.session, request.json)
+    user_id = await us.create_user(request.ctx.session, request.json)
     return json_response({"activation_link": f"http://127.0.0.1/users/activate?user_id={user_id}"})
 
 @user_bp.get('/users')

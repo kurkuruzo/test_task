@@ -33,6 +33,7 @@ class User(Base):
         return {
             "id": self.id,
             "username": self.username,
+            "is_active": self.is_active,
             "is_admin": self.is_admin
         }
     
