@@ -1,10 +1,11 @@
-from typing import Any, Union
+import logging
 from sqlalchemy import Column, Integer, Float, ForeignKey, select
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import Base
-from app.models.account_model import Account
+from app.services.account_services import update_balance
 
+logger = logging.getLogger(__name__)
 class Transaction(Base):
     __tablename__ = "transaction"
     id = Column("id", Integer(), primary_key=True)
@@ -20,12 +21,12 @@ class Transaction(Base):
         }
     
     @classmethod
-    async def get_all(cls, session: AsyncSession):
+    async def get_all(cls, session: AsyncSession) -> list['Transaction']:
         async with session.begin():
             stmt = select(cls)
             result = await session.execute(stmt)
-            products = result.scalars()
-        return products
+            transactions = result.scalars()
+        return transactions
     
     @classmethod
     async def get_by_id(cls, session, id) -> 'Transaction':
@@ -40,7 +41,7 @@ class Transaction(Base):
             return res.scalars().all()
         
     async def save(self, session) -> 'Transaction':
-        async with session.begin():
-            await session.add_all([self])
-            await session.commit()
-            return self
+        session.add_all([self])
+        await session.commit()
+        await update_balance(session, account_id=self.account_id, amount=self.amount)
+        return self

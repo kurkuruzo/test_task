@@ -15,7 +15,7 @@ async def create_account(request: Request) -> HTTPResponse:
     async with session.begin():
         account = Account(balance=body['balance'], user_id=body['user_id'])
         session.add_all([account])
-    return json_response(account.to_dict(session))
+    return json_response(await account.to_dict(session))
 
 @account_bp.get('/accounts')
 @protected

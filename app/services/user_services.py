@@ -15,7 +15,7 @@ def check_token(request):
         return False
 
     try:
-        token_dict = jwt.decode(
+        jwt.decode(
             request.token, request.app.config.SECRET, algorithms=["HS256"]
         )
     except jwt.exceptions.InvalidTokenError:
@@ -56,7 +56,7 @@ async def login_user(request: Request):
     if not user_to_authenticate.is_active:
         return text(f"User is not active. Please activate using the activation link: {_make_link(user_to_authenticate.id)}", 401)
     if is_password_match : 
-        token = jwt.encode({'user': user_to_authenticate.id, "exp": datetime.utcnow() + timedelta(minutes=1)}, request.app.config.SECRET)
+        token = jwt.encode({'user': user_to_authenticate.id, "exp": datetime.utcnow() + timedelta(minutes=10)}, request.app.config.SECRET)
         return json({"token": token})
     raise NotFound("User not found")
 

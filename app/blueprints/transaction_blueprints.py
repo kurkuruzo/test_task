@@ -4,6 +4,7 @@ from sanic.response import HTTPResponse
 from sanic.response import json as json_response
 from app.models.transaction_model import Transaction
 from app.services.user_services import protected
+from app.services.transaction_services import TransactionError, process_payment
 
 transaction_bp = Blueprint("transaction_blueprint")
 
@@ -12,9 +13,8 @@ transaction_bp = Blueprint("transaction_blueprint")
 async def create_transaction(request: Request) -> HTTPResponse:
     session = request.ctx.session
     body = request.json
-    async with session.begin():
-        transaction = Transaction(account_id=body['account_id'], amount=body['amount'])
-        session.add_all([transaction])
+    transaction = Transaction(account_id=body['account_id'], amount=body['amount'])
+    await transaction.save(session)
     return json_response(transaction.to_dict(), status=201)
 
 @transaction_bp.get('/transactions')
@@ -44,3 +44,12 @@ async def delete_transaction(request: Request, pk: int) -> HTTPResponse:
     await session.delete(transaction)
     await session.commit()
     return json_response({"transaction_id": transaction_id})
+
+@transaction_bp.post('/payment/webhook')
+async def payment(request: Request) -> HTTPResponse:
+    body = request.json
+    try:
+        transaction = await process_payment(request.ctx.session, body)
+    except TransactionError as e:
+        return json_response({"result": "failed", "message": e.args[0]}, status=400)
+    return json_response(transaction.to_dict())
