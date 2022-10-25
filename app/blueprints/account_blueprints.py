@@ -43,11 +43,11 @@ async def delete_account(request: Request, pk: int) -> HTTPResponse:
     account_id = account.id
     await session.delete(account)
     await session.commit()
-    return json_response({"account_id": account_id})
+    return json_response({"account_id": account_id}, status=201)
 
 @account_bp.get('/accounts/<pk:int>/transactions')
 @protected
-async def get_account_transactions(request: Request, pk: int):
+async def get_account_transactions(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
     if not await Account.get_by_id(session, pk):
         return HTTPResponse(status=404)

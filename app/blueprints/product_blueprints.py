@@ -16,7 +16,7 @@ async def create_product(request: Request) -> HTTPResponse:
     async with session.begin():
         product = Product(title=body['title'], description=body['description'], price=body["price"])
         session.add_all([product])
-    return json_response(product.to_dict())
+    return json_response(product.to_dict(), status=201)
 
 @product_bp.get('/products')
 @protected

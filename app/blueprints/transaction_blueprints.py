@@ -15,7 +15,7 @@ async def create_transaction(request: Request) -> HTTPResponse:
     async with session.begin():
         transaction = Transaction(account_id=body['account_id'], amount=body['amount'])
         session.add_all([transaction])
-    return json_response(transaction.to_dict())
+    return json_response(transaction.to_dict(), status=201)
 
 @transaction_bp.get('/transactions')
 @protected

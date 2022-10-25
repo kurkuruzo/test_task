@@ -1,12 +1,9 @@
 from urllib import request, response
-from venv import create
-import jwt
 import logging
-from sanic import Blueprint, text
+from sanic import Blueprint
 from sanic.request import Request
 from sanic.response import HTTPResponse
 from sanic.response import json as json_response
-from sanic.exceptions import Forbidden, BadRequest, NotFound
 
 from app.services.user_services import protected
 from app.models.user_model import User
@@ -29,7 +26,7 @@ async def activate_user(request: Request) -> HTTPResponse:
 @user_bp.post('/users')
 async def register_user(request: Request) -> HTTPResponse:
     user_id = await us.create_user(request.ctx.session, request.json)
-    return json_response({"activation_link": f"http://127.0.0.1/users/activate?user_id={user_id}"})
+    return json_response({"activation_link": f"http://127.0.0.1/users/activate?user_id={user_id}"}, status=201)
 
 @user_bp.get('/users')
 @protected

@@ -5,6 +5,8 @@ from sqlalchemy.orm import relationship
 from hashlib import sha256
 from app.database import Base
 
+class UserError(Exception):
+    pass
 
 class User(Base):
     __tablename__ = "user"
@@ -23,8 +25,8 @@ class User(Base):
     
     @property
     def password(self):
-        pass
-    
+        raise AttributeError("You can not access password")
+        
     @password.setter
     def password(self, value):
         self.password_hash = sha256(str(value).encode()).hexdigest()

@@ -1,18 +1,21 @@
+from datetime import datetime, timedelta
 from functools import wraps
 from hashlib import sha256
 import jwt
+import logging
 
 from sanic import text, json, Request
 from sanic.exceptions import NotFound, BadRequest
 from app.models.user_model import User
 
+logger = logging.getLogger(__name__)
 
 def check_token(request):
     if not request.token:
         return False
 
     try:
-        jwt.decode(
+        token_dict = jwt.decode(
             request.token, request.app.config.SECRET, algorithms=["HS256"]
         )
     except jwt.exceptions.InvalidTokenError:
@@ -52,8 +55,8 @@ async def login_user(request: Request):
     is_password_match = check_password(user_to_authenticate, request.json["password"])
     if not user_to_authenticate.is_active:
         return text(f"User is not active. Please activate using the activation link: {_make_link(user_to_authenticate.id)}", 401)
-    if is_password_match :
-        token = jwt.encode({}, request.app.config.SECRET)
+    if is_password_match : 
+        token = jwt.encode({'user': user_to_authenticate.id, "exp": datetime.utcnow() + timedelta(minutes=1)}, request.app.config.SECRET)
         return json({"token": token})
     raise NotFound("User not found")
 
@@ -76,6 +79,3 @@ def make_hash(value) -> str:
 
 def _make_link(user_id: int) -> str:
     return f"127.0.0.1:1234/users/activate?user_id={user_id}"
-
-def check_user_is_active(request):
-    pass
