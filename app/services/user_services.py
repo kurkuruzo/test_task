@@ -7,7 +7,7 @@ import logging
 
 from sanic import text, json, Request
 from sanic.exceptions import NotFound, BadRequest
-from app.models.user_model import User
+from app.models.user_model import User, UserError
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +23,14 @@ def check_token(request):
         return True
 
 def parse_token(request):
-    return jwt.decode(
+    try:
+        payload = jwt.decode(
             request.token, request.app.config.SECRET, algorithms=["HS256"]
         )
+    except Exception:
+        raise UserError("Token is invalid")
+    return payload
+        
 
 def protected(wrapped):
     def decorator(f):
@@ -37,7 +42,7 @@ def protected(wrapped):
                 response = await f(request, *args, **kwargs)
                 return response
             else:
-                return text("You are unauthorized.", 401)
+                return json({"result": "failed", "message": "You are unauthorized."}, 401)
 
         return decorated_function
 
@@ -47,11 +52,14 @@ def admin(wrapped):
     def decorator(f):
         @wraps(f)
         async def decorated_function(request, *args, **kwargs):
-            user_id = parse_token(request).get("user_id")
+            try:
+                user_id = parse_token(request).get("user_id")
+            except UserError as e:
+                raise NotFound(e.args[0])
             if await _check_if_admin(request, user_id):
                 return await f(request, *args, **kwargs)
             else:
-                return text("You need to be admin to access this endpoint")
+                return json({"result": "failed", "message": "You need to be admin to access this endpoint"}, 403)
         return decorated_function
     return decorator(wrapped)
             

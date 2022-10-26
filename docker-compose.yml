@@ -1,5 +1,19 @@
 version: '3.8'
 services:
+  mysanic:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/sanic
+      - ./.dbdata:/sanic/.dbdata
+    ports:
+      - "8080:1234"
+    user: "1000"
+    restart: always
+    depends_on:
+      - db
+  
   db:
     image: postgres
     restart: always
