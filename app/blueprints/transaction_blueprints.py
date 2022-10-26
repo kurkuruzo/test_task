@@ -3,13 +3,13 @@ from sanic.request import Request
 from sanic.response import HTTPResponse
 from sanic.response import json as json_response
 from app.models.transaction_model import Transaction
-from app.services.user_services import protected
+from app.services.user_services import protected, admin
 from app.services.transaction_services import TransactionError, process_payment
 
 transaction_bp = Blueprint("transaction_blueprint")
 
 @transaction_bp.post('/transactions')
-@protected
+@admin
 async def create_transaction(request: Request) -> HTTPResponse:
     session = request.ctx.session
     body = request.json
@@ -18,14 +18,14 @@ async def create_transaction(request: Request) -> HTTPResponse:
     return json_response(transaction.to_dict(), status=201)
 
 @transaction_bp.get('/transactions')
-@protected
+@admin
 async def get_transactions(request: Request) -> HTTPResponse:
     session = request.ctx.session
     transactions = await Transaction.get_all(session)
     return json_response([transaction.to_dict() for transaction in transactions])
     
 @transaction_bp.get('/transactions/<pk:int>')
-@protected
+@admin
 async def get_transaction(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
     transaction = await Transaction.get_by_id(session, pk)
@@ -34,7 +34,7 @@ async def get_transaction(request: Request, pk: int) -> HTTPResponse:
     return json_response(transaction.to_dict())
 
 @transaction_bp.delete('/transactions/<pk:int>')
-@protected
+@admin
 async def delete_transaction(request: Request, pk: int) -> HTTPResponse:
     session = request.ctx.session
     transaction = await Transaction.get_by_id(session, pk)

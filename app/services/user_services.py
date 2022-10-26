@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from functools import wraps
 from hashlib import sha256
+from urllib import response
 import jwt
 import logging
 
@@ -15,14 +16,16 @@ def check_token(request):
         return False
 
     try:
-        jwt.decode(
-            request.token, request.app.config.SECRET, algorithms=["HS256"]
-        )
+        payload = parse_token(request)
     except jwt.exceptions.InvalidTokenError:
         return False
     else:
         return True
 
+def parse_token(request):
+    return jwt.decode(
+            request.token, request.app.config.SECRET, algorithms=["HS256"]
+        )
 
 def protected(wrapped):
     def decorator(f):
@@ -40,6 +43,22 @@ def protected(wrapped):
 
     return decorator(wrapped)
 
+def admin(wrapped):
+    def decorator(f):
+        @wraps(f)
+        async def decorated_function(request, *args, **kwargs):
+            user_id = parse_token(request).get("user_id")
+            if await _check_if_admin(request, user_id):
+                return await f(request, *args, **kwargs)
+            else:
+                return text("You need to be admin to access this endpoint")
+        return decorated_function
+    return decorator(wrapped)
+            
+async def _check_if_admin(request: Request, user_id: int) -> bool:
+    user = await User.get_by_id(request.ctx.session, user_id)
+    return user.is_admin    
+
 async def create_user(session, request_body) -> str:
     async with session.begin():
         user = User(username=request_body['username'], password=request_body['password'], is_admin=request_body["is_admin"])
@@ -56,7 +75,7 @@ async def login_user(request: Request):
     if not user_to_authenticate.is_active:
         return text(f"User is not active. Please activate using the activation link: {_make_link(user_to_authenticate.id)}", 401)
     if is_password_match : 
-        token = jwt.encode({'user': user_to_authenticate.id, "exp": datetime.utcnow() + timedelta(minutes=10)}, request.app.config.SECRET)
+        token = jwt.encode({'user_id': user_to_authenticate.id, "exp": datetime.utcnow() + timedelta(minutes=10)}, request.app.config.SECRET)
         return json({"token": token})
     raise NotFound("User not found")
 
